@@ -1,6 +1,16 @@
 package jp.co.uniquevision.screamingpot.receiver;
 
+/**
+ * 
+ * @author 
+ *
+ */
 public class App {
+	
+	/**
+	 * 
+	 * @param args
+	 */
 	public static void main(String[] args) {
 		RemoteDeviceDiscovery discovery = new RemoteDeviceDiscovery();
 		Thread discoveryThread = new Thread(discovery);

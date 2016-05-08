@@ -1,6 +1,7 @@
 package jp.co.uniquevision.screamingpot.receiver;
 
 import java.io.IOException;
+import java.util.Enumeration;
 import java.util.Vector;
 import javax.bluetooth.*;
 
@@ -12,7 +13,9 @@ public class RemoteDeviceDiscovery implements Runnable {
 	public void run() {
 		try {
 			while (true) {
-				search();
+				searchDevice();
+				searchService();
+				
 				Thread.sleep(1000);
 			}
 		}
@@ -21,12 +24,11 @@ public class RemoteDeviceDiscovery implements Runnable {
 		}
 	}
 	
-	private void search() throws InterruptedException {
+	private void searchDevice() throws InterruptedException {
+        this.devicesDiscovered.clear();
 
         final Object inquiryCompletedEvent = new Object();
-
-        this.devicesDiscovered.clear();
-        DiscoveryListener listener = new SpDiscoveryListener(this, inquiryCompletedEvent);
+        final DiscoveryListener listener = new DeviceDiscoveryListener(this, inquiryCompletedEvent);
 
         synchronized(inquiryCompletedEvent) {
     		try {
@@ -48,4 +50,12 @@ public class RemoteDeviceDiscovery implements Runnable {
 		this.devicesDiscovered.addElement(btDevice);
 	}
 
+	private void searchService() throws InterruptedException {
+        for(Enumeration<RemoteDevice> en = this.devicesDiscovered.elements(); en.hasMoreElements(); ) {
+            RemoteDevice btDevice = (RemoteDevice)en.nextElement();
+
+            ServicesSearch servicesSearch = new ServicesSearch(btDevice);
+            servicesSearch.search();
+        }
+	}
 }
