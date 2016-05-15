@@ -9,13 +9,14 @@ import jp.co.uniquevision.screamingpot.receiver.discovery.RemoteDeviceDiscovery;
  * 湿度センサーから送信された検出値をBluetoothのシリアル通信で受信するアプリケーション
  *
  */
-public class App {
-	
+public class App 
+{
 	/**
 	 * メイン関数
 	 * @param args コマンドライン引数
 	 */
-	public static void main(String[] args) {
+    public static void main(String[] args)
+    {
 		// 送信元サービス管理用マップ
 		Map<String, SenderService> senderServiceMap = new HashMap<>();
 		
@@ -30,5 +31,5 @@ public class App {
 		catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-	}
+    }
 }
