@@ -11,7 +11,7 @@ import javax.microedition.io.StreamConnection;
  * Bluetoothと通信を行う
  *
  */
-public class SenderService implements Runnable {
+public class Receiver implements Runnable {
 	
 	private String deviceAddress;
 	private String friendlyName;
@@ -25,7 +25,7 @@ public class SenderService implements Runnable {
 	 * @param url サービスのURL
 	 * @param serviceName サービス名
 	 */
-	public SenderService(String deviceAddress,
+	public Receiver(String deviceAddress,
 			String friendlyName,
 			String url,
 			String serviceName) {

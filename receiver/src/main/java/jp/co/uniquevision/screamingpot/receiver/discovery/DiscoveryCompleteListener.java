@@ -7,6 +7,6 @@ import java.util.Vector;
  *
  * @param <T> 発見したアイテムの一覧
  */
-interface DiscoveryCompleteListener<T> {
+public interface DiscoveryCompleteListener<T> {
 	void onDiscoveryComplete(Vector<T> discovered);
 }

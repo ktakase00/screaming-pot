@@ -1,23 +1,26 @@
-package jp.co.uniquevision.screamingpot.receiver.discovery;
+package jp.co.uniquevision.screamingpot.receiver;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Vector;
 import javax.bluetooth.*;
 
-import jp.co.uniquevision.screamingpot.receiver.SenderService;
+import jp.co.uniquevision.screamingpot.receiver.discovery.DeviceDiscoveryListener;
+import jp.co.uniquevision.screamingpot.receiver.discovery.DiscoveryCompleteListener;
+import jp.co.uniquevision.screamingpot.receiver.discovery.ServiceParams;
+import jp.co.uniquevision.screamingpot.receiver.discovery.ServicesSearch;
 
 /**
  * Bluetooth端末を探索する
  *
  */
-public class RemoteDeviceDiscovery implements Runnable {
+public class DeviceDiscovery implements Runnable {
 
-	private Map<String, SenderService> senderServiceMap;
+	private Map<String, Receiver> senderServiceMap;
 	private Vector<RemoteDevice> devicesDiscovered;
 	private Object inquiryCompletedEvent;
 	
-	public RemoteDeviceDiscovery(Map<String, SenderService> senderServiceMap) {
+	public DeviceDiscovery(Map<String, Receiver> senderServiceMap) {
 		this.senderServiceMap = senderServiceMap;
 	}
     
@@ -55,7 +58,7 @@ public class RemoteDeviceDiscovery implements Runnable {
 		final DiscoveryCompleteListener<RemoteDevice> completeListener = new DiscoveryCompleteListener<RemoteDevice>() {
 			@Override
 			public void onDiscoveryComplete(Vector<RemoteDevice> discovered) {
-				RemoteDeviceDiscovery.this.onDeviceDiscoveryComplete(discovered);
+				DeviceDiscovery.this.onDeviceDiscoveryComplete(discovered);
 			}
 		};
 		// 探索中に発生する各イベントを処理するリスナー
@@ -116,7 +119,7 @@ public class RemoteDeviceDiscovery implements Runnable {
 		
 		try {
 			// 送信元サービスを生成
-			SenderService service = new SenderService(btDevice.getBluetoothAddress(),
+			Receiver service = new Receiver(btDevice.getBluetoothAddress(),
 					btDevice.getFriendlyName(false),
 					url,
 					params.getServiceName());
