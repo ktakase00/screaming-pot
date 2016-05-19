@@ -27,7 +27,7 @@ public class DataStore {
 	public void append(Humidity humidity) {
 		synchronized(this.dataStoreEventObject) {
 			String lastLine = getLastLine();
-			System.out.println(lastLine);
+			System.out.println(String.format("[%s]", lastLine));
 			
 			appendSync(humidity);
 		}
@@ -44,8 +44,9 @@ public class DataStore {
 					Util.dateToString(humidity.getTime()),
 					humidity.getDegree());
 			
-			writer.write(line);
-			writer.newLine();
+//			writer.write(line);
+//			writer.newLine();
+			writer.write(String.format("%s\n", line));
 		}
 		catch (IOException e) {
 			e.printStackTrace();
@@ -69,27 +70,30 @@ public class DataStore {
 		
 		try {
 			access = new RandomAccessFile(file, "r");
-			long pos = access.length();
+			long pos = access.length() - 2;
 			System.out.println(pos);
 			boolean found = false;
 			
 			try {
-				while (!found) {
-					pos -= 2;
+				while (pos > 0 && !found) {
 					access.seek(pos);
 					
 					int character = access.read();
+					System.out.println(character);
 					
 					if (0x0a == character) {
 						found = true;
 					}
+					else {
+						pos -= 1;
+					}
 				}
 				
 				if (found) {
-					pos += 2;
-					access.seek(pos);
-					line = access.readLine();
+					pos += 1;
 				}
+				access.seek(pos);
+				line = access.readLine();
 			}
 			catch (EOFException ex) {
 				ex.printStackTrace();
