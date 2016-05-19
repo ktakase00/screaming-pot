@@ -1,26 +1,33 @@
 package jp.co.uniquevision.screamingpot.receiver.models;
 
+import java.util.Date;
+
 public class Humidity {
 
 	private String code;
-	private String time;
-	private Double degree;
+	private Date time;
+	private double degree;
 	
-	public Humidity(String code, String time, Double degree) {
+	public Humidity(String code, Date time, double degree) {
 		this.code = code;
 		this.time = time;
 		this.degree = degree;
+	}
+	
+	public static Humidity newInstance(double degree) {
+		Humidity humidity = new Humidity("", new Date(), degree);
+		return humidity;
 	}
 	
 	public String getCode() {
 		return this.code;
 	}
 	
-	public String getTime() {
+	public Date getTime() {
 		return this.time;
 	}
 	
-	public Double getDegree() {
+	public double getDegree() {
 		return this.degree;
 	}
 }

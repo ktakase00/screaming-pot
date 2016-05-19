@@ -7,6 +7,8 @@ import java.io.InputStreamReader;
 import javax.microedition.io.Connector;
 import javax.microedition.io.StreamConnection;
 
+import jp.co.uniquevision.screamingpot.receiver.models.Humidity;
+
 /**
  * Bluetoothと通信を行う
  *
@@ -17,6 +19,7 @@ public class Receiver implements Runnable {
 	private String friendlyName;
 	private String url;
 	private String serviceName;
+	private DataStore dataStore;
 	
 	/**
 	 * コンストラクタ
@@ -34,6 +37,7 @@ public class Receiver implements Runnable {
 		this.friendlyName = friendlyName;
 		this.url = url;
 		this.serviceName = serviceName;
+		this.dataStore = new DataStore(friendlyName);
 	}
 	
 	/**
@@ -122,6 +126,11 @@ public class Receiver implements Runnable {
 				String lineRead = bReader.readLine();
 				
 				System.out.println("received: " + lineRead);
+				
+				double degree = Double.valueOf(lineRead);
+				Humidity humidity = Humidity.newInstance(degree);
+				
+				this.dataStore.append(humidity);
 			}
 			catch (IOException e) {
 				e.printStackTrace();

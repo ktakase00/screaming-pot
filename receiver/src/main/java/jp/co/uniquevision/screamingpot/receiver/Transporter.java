@@ -33,7 +33,7 @@ public class Transporter implements Runnable {
 	}
 
 	private void gather() throws InterruptedException {
-		Humidity humidity = new Humidity("aaa", "2016-05-18T01:25:00+09", 100.0);
+		Humidity humidity = Humidity.newInstance(100.0);
 		Gson gson = new Gson();
 		String json = gson.toJson(humidity);
 		System.out.println(json);
