@@ -29,7 +29,10 @@ public class DataStore {
 			String lastLine = getLastLine();
 			System.out.println(String.format("[%s]", lastLine));
 			
-			appendSync(humidity);
+			long sequence = getSequence(lastLine);
+			Humidity newItem = Humidity.cloneWithSequence(humidity, sequence + 1);
+			
+			appendSync(newItem);
 		}
 	}
 	
@@ -40,12 +43,11 @@ public class DataStore {
 		try {
 			writer = new BufferedWriter(new FileWriter(file, true));
 			
-			String line = String.format("%s,%f",
+			String line = String.format("%08d,%s,%f",
+					humidity.getSequence(),
 					Util.dateToString(humidity.getTime()),
 					humidity.getDegree());
 			
-//			writer.write(line);
-//			writer.newLine();
 			writer.write(String.format("%s\n", line));
 		}
 		catch (IOException e) {
@@ -77,9 +79,7 @@ public class DataStore {
 			try {
 				while (pos > 0 && !found) {
 					access.seek(pos);
-					
 					int character = access.read();
-					System.out.println(character);
 					
 					if (0x0a == character) {
 						found = true;
@@ -108,7 +108,9 @@ public class DataStore {
 		}
 		finally {
 			try {
-				access.close();
+				if (null != access) {
+					access.close();
+				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -116,5 +118,21 @@ public class DataStore {
 		}
 		
 		return line;
+	}
+	
+	private long getSequence(String line) {
+		long sequence = 0;
+		
+		if (line.length() > 0) {
+			String[] values = line.split(",");
+			
+			try {
+				sequence = Long.valueOf(values[0]);
+			}
+			catch (NumberFormatException e) {
+				e.printStackTrace();
+			}
+		}
+		return sequence;
 	}
 }
