@@ -37,17 +37,16 @@ public class DataStore {
 	}
 	
 	private void appendSync(Humidity humidity) {
+		String line = String.format("%08d,%s,%f",
+				humidity.getSequence(),
+				Util.dateToString(humidity.getTime()),
+				humidity.getDegree());
+		
 		File file = new File(this.friendlyName);
 		BufferedWriter writer = null;
 		
 		try {
 			writer = new BufferedWriter(new FileWriter(file, true));
-			
-			String line = String.format("%08d,%s,%f",
-					humidity.getSequence(),
-					Util.dateToString(humidity.getTime()),
-					humidity.getDegree());
-			
 			writer.write(String.format("%s\n", line));
 		}
 		catch (IOException e) {
