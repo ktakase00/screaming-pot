@@ -23,8 +23,8 @@ public class Humidity {
 		this.degree = degree;
 	}
 	
-	public static Humidity newInstance(double degree) {
-		Humidity humidity = new Humidity("", new Date(), degree);
+	public static Humidity newInstance(String device, double degree) {
+		Humidity humidity = new Humidity(device, new Date(), degree);
 		return humidity;
 	}
 	

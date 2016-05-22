@@ -1,0 +1,12 @@
+{
+  "mapping": {
+    "humidity": {
+      "properties": {
+        "id": {"type": "string", "store": "yes", "index": "not_analyzed"},
+        "device": {"type": "string", "store": "yes", "index": "analyzed"},
+        "time": {"type": "date", "store": "yes", "index": "analyzed"},
+        "degree": {"type": "double", "store": "yes", "index": "analyzed"}
+      }
+    }
+  }
+}

@@ -117,10 +117,10 @@ public class Receiver implements Runnable {
 	 * @param inStream 入力ストリーム
 	 */
 	private void receive(InputStream inStream) {
-		boolean activeFlag = true;
+		boolean loop = true;
 		BufferedReader bReader = new BufferedReader(new InputStreamReader(inStream));
 		
-		while (activeFlag) {
+		while (loop) {
 			try {
 				// read string from spp client
 				String lineRead = bReader.readLine();
@@ -128,15 +128,18 @@ public class Receiver implements Runnable {
 				System.out.println("received: " + lineRead);
 				
 				double degree = Double.valueOf(lineRead);
-				Humidity humidity = Humidity.newInstance(degree);
+				Humidity humidity = Humidity.newInstance(this.friendlyName, degree);
 				
 				this.dataStore.append(humidity);
+			}
+			catch (NumberFormatException e) {
+				e.printStackTrace();
 			}
 			catch (IOException e) {
 				e.printStackTrace();
 				
 				// 通信エラーが発生したら接続を閉じる
-				activeFlag = false;
+				loop = false;
 			}
 		}
 	}

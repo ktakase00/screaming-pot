@@ -5,7 +5,7 @@ import junit.framework.TestCase;
 
 public class DataStoreTest extends TestCase {
 	public void testSave() {
-		Humidity humidity = Humidity.newInstance(100.0);
+		Humidity humidity = Humidity.newInstance("test", 100.0);
 		DataStore store = new DataStore("sample_data_store");
 		store.append(humidity);
 		

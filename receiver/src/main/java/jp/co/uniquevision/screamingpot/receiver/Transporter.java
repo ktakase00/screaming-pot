@@ -23,9 +23,11 @@ public class Transporter implements Runnable {
 
 	private OkHttpClient client;
 	private Map<String, Receiver> receiverMap;
+	private Map<String, Long> sequenceMap;
 
 	public Transporter(Map<String, Receiver> receiverMap) {
 		this.receiverMap = receiverMap;
+		this.sequenceMap = new HashMap<String, Long>();
 		this.client = new OkHttpClient();
 	}
 	
@@ -36,7 +38,7 @@ public class Transporter implements Runnable {
 		
 		while (loop) {
 			try {
-				gather();
+				communicate();
 				Thread.sleep(5000);
 			}
 			catch (InterruptedException e) {
@@ -45,8 +47,31 @@ public class Transporter implements Runnable {
 			}
 		}
 	}
+	
+	private void communicate() {
+		this.sequenceMap.clear();
+		
+		List<Humidity> listAll = gather();
+		if (0 >= listAll.size()) {
+			return;
+		}
+		
+		String bulk = makeBulk(listAll);
+		System.out.println(bulk);
+		
+		try {
+			String url = "http://127.0.0.1:8080/elasticsearch/_bulk";
+			String res = post(url, bulk);
+			System.out.println(res);
+			
+			cleanup();
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
-	private void gather() throws InterruptedException {
+	private List<Humidity> gather() {
 		/*
 		Humidity humidity = Humidity.newInstance(100.0);
 		Gson gson = new Gson();
@@ -61,9 +86,8 @@ public class Transporter implements Runnable {
 			e.printStackTrace();
 		}
 		*/
-		System.out.println(String.format("transporter: %d", this.receiverMap.size()));
+//		System.out.println(String.format("transporter: %d", this.receiverMap.size()));
 		List<Humidity> listAll = new ArrayList<Humidity>();
-		Map<String, Long> sequenceMap = new HashMap<String, Long>();
 		
 		for (Map.Entry<String, Receiver> ent : this.receiverMap.entrySet()) {
 			Receiver receiver = ent.getValue();
@@ -72,23 +96,12 @@ public class Transporter implements Runnable {
 			listAll.addAll(list);
 			
 			if (0 < list.size()) {
-				sequenceMap.put(dataStore.getDevice(),
+				this.sequenceMap.put(dataStore.getDevice(),
 						list.get(list.size()-1).getSequence());
 			}
 		}
 		
-		String bulk = makeBulk(listAll);
-		System.out.println(bulk);
-		
-		for (Map.Entry<String, Receiver> ent : this.receiverMap.entrySet()) {
-			Receiver receiver = ent.getValue();
-			DataStore dataStore = receiver.getDataStore();
-			String deviceName = dataStore.getDevice();
-			
-			if (sequenceMap.containsKey(deviceName)) {
-				dataStore.cleanup(sequenceMap.get(deviceName));
-			}
-		}
+		return listAll;
 	}
 	
 	private String makeBulk(List<Humidity> list) {
@@ -96,7 +109,7 @@ public class Transporter implements Runnable {
 		Gson gson = new Gson();
 		
 		for (Humidity humidity : list) {
-			EsMetaCreate meta = new EsMetaCreate("screamongpot", "humidity", null);
+			EsMetaCreate meta = new EsMetaCreate("practice", "humidity", null);
 			EsSourceCreate source = new EsSourceCreate(humidity.getDevice(),
 					humidity.getTime(),
 					humidity.getDegree());
@@ -107,13 +120,25 @@ public class Transporter implements Runnable {
 		return builder.toString();
 	}
 	
-	String post(String url, String json) throws IOException {
-		RequestBody body = RequestBody.create(JSON, json);
+	private String post(String url, String bulk) throws IOException {
+		RequestBody body = RequestBody.create(JSON, bulk);
 		Request request = new Request.Builder()
 				.url(url)
 				.post(body)
 				.build();
 		Response response = client.newCall(request).execute();
 		return response.body().string();
+	}
+	
+	private void cleanup() {
+		for (Map.Entry<String, Receiver> ent : this.receiverMap.entrySet()) {
+			Receiver receiver = ent.getValue();
+			DataStore dataStore = receiver.getDataStore();
+			String device = dataStore.getDevice();
+			
+			if (this.sequenceMap.containsKey(device)) {
+				dataStore.cleanup(this.sequenceMap.get(device));
+			}
+		}
 	}
 }

@@ -14,6 +14,8 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import jp.co.uniquevision.screamingpot.receiver.models.Humidity;
 
@@ -59,7 +61,7 @@ public class DataStore {
 		long sequence = getLastSequence(lastLine);
 		Humidity newItem = Humidity.cloneWithSequence(humidity, sequence + 1);
 		
-		String line = String.format("%08d,%s,%s,%f",
+		String line = String.format("%08d,%s,%s,%f\n",
 				newItem.getSequence(),
 				newItem.getDevice(),
 				Util.dateToString(newItem.getTime()),
@@ -70,7 +72,8 @@ public class DataStore {
 		
 		try {
 			writer = new BufferedWriter(new FileWriter(file, true));
-			writer.write(String.format("%s\n", line));
+			writer.write(line);
+			writer.flush();
 		}
 		catch (IOException e) {
 			e.printStackTrace();
@@ -168,6 +171,7 @@ public class DataStore {
 		File file = getFile();
 		BufferedReader reader = null;
 		List<Humidity> list = new ArrayList<Humidity>();
+		Map<Date, Integer> timeMap = new HashMap<Date, Integer>();
 		
 		try {
 			reader = new BufferedReader(new FileReader(file));
@@ -177,8 +181,18 @@ public class DataStore {
 			while (null != (line = reader.readLine())) {
 				Humidity humidity = retreiveHumidity(line);
 				
-				if (null != humidity) {
+				if (null == humidity) {
+					continue;
+				}
+				
+				Date time = humidity.getTime();
+				
+				if (!timeMap.containsKey(time)) {
 					list.add(humidity);
+					timeMap.put(time, list.size() - 1);
+				}
+				else {
+					list.set(timeMap.get(time), humidity);
 				}
 			}
 		}
@@ -194,6 +208,11 @@ public class DataStore {
 	
 	private void cleanupSync(long lastSequence) {
 		String[] newLineAry = readNewLines(lastSequence);
+		
+		if (0 >= newLineAry.length) {
+			truncateFile();
+			return;
+		}
 		writeNewLines(newLineAry);
 	}
 	
@@ -238,14 +257,35 @@ public class DataStore {
 			writer = new BufferedWriter(new FileWriter(file, false));
 			
 			for (String line : newLineAry) {
-				writer.write(line);
+				writer.write(String.format("%s\n", line));
 			}
+			writer.flush();
 		}
 		catch (IOException e) {
 			e.printStackTrace();
 		}
 		finally {
 			closeReaderWriter(writer);
+		}
+	}
+	
+	private void truncateFile() {
+		File file = getFile();
+		RandomAccessFile access = null;
+		
+		try {
+			access = new RandomAccessFile(file, "rw");
+			access.setLength(0);
+		}
+		catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+		finally {
+			closeReaderWriter(access);
 		}
 	}
 	
