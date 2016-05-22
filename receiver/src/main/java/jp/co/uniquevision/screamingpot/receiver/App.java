@@ -16,14 +16,14 @@ public class App
     public static void main(String[] args)
     {
 		// 送信元サービス管理用マップ
-		Map<String, Receiver> senderServiceMap = new HashMap<>();
+		Map<String, Receiver> receiverMap = new HashMap<>();
 		
 		// Bluetooth端末の探索
-		DeviceDiscovery discovery = new DeviceDiscovery(senderServiceMap);
+		DeviceDiscovery discovery = new DeviceDiscovery(receiverMap);
 		Thread discoveryThread = new Thread(discovery);
 		discoveryThread.start();
 		
-		Transporter transporter = new Transporter();
+		Transporter transporter = new Transporter(receiverMap);
 		Thread transporterThread = new Thread(transporter);
 		transporterThread.start();
 		

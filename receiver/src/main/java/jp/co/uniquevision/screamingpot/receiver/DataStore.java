@@ -7,42 +7,65 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.RandomAccessFile;
+import java.io.FileReader;
+import java.io.BufferedReader;
+import java.io.Closeable;
+import java.text.ParseException;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Date;
 
 import jp.co.uniquevision.screamingpot.receiver.models.Humidity;
 
 public class DataStore {
-	private String friendlyName;
+	private String device;
 	private Object dataStoreEventObject;
 	
-	public DataStore(String friendlyName) {
-		init(friendlyName);
+	public DataStore(String device) {
+		init(device);
 	}
 	
-	private void init(String friendlyName) {
-		this.friendlyName = friendlyName;
+	private void init(String device) {
+		this.device = device;
 		this.dataStoreEventObject = new Object();
-		
 	}
 	
 	public void append(Humidity humidity) {
 		synchronized(this.dataStoreEventObject) {
-			String lastLine = getLastLine();
-			System.out.println(String.format("[%s]", lastLine));
-			
-			long sequence = getSequence(lastLine);
-			Humidity newItem = Humidity.cloneWithSequence(humidity, sequence + 1);
-			
-			appendSync(newItem);
+			appendSync(humidity);
 		}
 	}
 	
+	public List<Humidity> readDataStore() {
+		synchronized(this.dataStoreEventObject) {
+			return readDataStoreSync();
+		}
+	}
+	
+	public void cleanup(long lastSequence) {
+		synchronized(this.dataStoreEventObject) {
+			cleanupSync(lastSequence);
+		}
+	}
+	
+	public String getDevice() {
+		return this.device;
+	}
+	
 	private void appendSync(Humidity humidity) {
-		String line = String.format("%08d,%s,%f",
-				humidity.getSequence(),
-				Util.dateToString(humidity.getTime()),
-				humidity.getDegree());
+		String lastLine = getLastLine();
+//		System.out.println(String.format("[%s]", lastLine));
 		
-		File file = new File(this.friendlyName);
+		long sequence = getLastSequence(lastLine);
+		Humidity newItem = Humidity.cloneWithSequence(humidity, sequence + 1);
+		
+		String line = String.format("%08d,%s,%s,%f",
+				newItem.getSequence(),
+				newItem.getDevice(),
+				Util.dateToString(newItem.getTime()),
+				newItem.getDegree());
+		
+		File file = getFile();
 		BufferedWriter writer = null;
 		
 		try {
@@ -53,26 +76,22 @@ public class DataStore {
 			e.printStackTrace();
 		}
 		finally {
-			if (null != writer) {
-				try {
-					writer.close();
-				}
-				catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+			closeReaderWriter(writer);
 		}
 	}
 	
 	private String getLastLine() {
-		File file = new File(this.friendlyName);
-		RandomAccessFile access = null;
 		String line = "";
+		File file = getFile();
+		if (2 > file.length()) {
+			return line;
+		}
+		RandomAccessFile access = null;
 		
 		try {
 			access = new RandomAccessFile(file, "r");
 			long pos = access.length() - 2;
-			System.out.println(pos);
+//			System.out.println(pos);
 			boolean found = false;
 			
 			try {
@@ -97,41 +116,151 @@ public class DataStore {
 			catch (EOFException ex) {
 				ex.printStackTrace();
 			}
-			
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
+		}
+		catch (FileNotFoundException e) {
 			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		}
+		catch (IOException e) {
 			e.printStackTrace();
 		}
 		finally {
-			try {
-				if (null != access) {
-					access.close();
-				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			closeReaderWriter(access);
 		}
 		
 		return line;
 	}
 	
-	private long getSequence(String line) {
-		long sequence = 0;
+	private Humidity retreiveHumidity(String line) {
+		if (0 >= line.length()) {
+			return null;
+		}
+		String[] values = line.split(",");
+		Humidity humidity = null;
 		
-		if (line.length() > 0) {
-			String[] values = line.split(",");
+		try {
+			long sequence = Long.valueOf(values[0]);
+			String friendlyName = values[1];
+			Date time = Util.stringToDate(values[2]);
+			double degree = Double.valueOf(values[3]);
 			
-			try {
-				sequence = Long.valueOf(values[0]);
-			}
-			catch (NumberFormatException e) {
-				e.printStackTrace();
-			}
+			humidity = new Humidity(sequence, friendlyName, time, degree);
+		}
+		catch (ParseException e) {
+			e.printStackTrace();
+		}
+		catch (NumberFormatException e) {
+			e.printStackTrace();
+		}
+		return humidity;
+	}
+	
+	private long getLastSequence(String line) {
+		long sequence = 0;
+		Humidity humidity = retreiveHumidity(line);
+		
+		if (null != humidity) {
+			sequence = humidity.getSequence();
 		}
 		return sequence;
+	}
+	
+	private List<Humidity> readDataStoreSync() {
+		File file = getFile();
+		BufferedReader reader = null;
+		List<Humidity> list = new ArrayList<Humidity>();
+		
+		try {
+			reader = new BufferedReader(new FileReader(file));
+			String line = null;
+
+			// ファイルを1行ずつ読み込む
+			while (null != (line = reader.readLine())) {
+				Humidity humidity = retreiveHumidity(line);
+				
+				if (null != humidity) {
+					list.add(humidity);
+				}
+			}
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+		finally {
+			closeReaderWriter(reader);
+		}
+		
+		return list;
+	}
+	
+	private void cleanupSync(long lastSequence) {
+		String[] newLineAry = readNewLines(lastSequence);
+		writeNewLines(newLineAry);
+	}
+	
+	private String[] readNewLines(long lastSequence) {
+		File file = getFile();
+		BufferedReader reader = null;
+		List<String> list = new ArrayList<String>();
+		String[] lineAry = new String[] {};
+		
+		try {
+			reader = new BufferedReader(new FileReader(file));
+			String line = null;
+
+			// ファイルを1行ずつ読み込む
+			while (null != (line = reader.readLine())) {
+				Humidity humidity = retreiveHumidity(line);
+				
+				if (null != humidity &&
+						lastSequence < humidity.getSequence()) {
+					
+					list.add(line);
+				}
+			}
+			
+			lineAry = new String[list.size()];
+			list.toArray(lineAry);
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+		finally {
+			closeReaderWriter(reader);
+		}
+		return lineAry;
+	}
+	
+	private void writeNewLines(String[] newLineAry) {
+		File file = getFile();
+		BufferedWriter writer = null;
+		
+		try {
+			writer = new BufferedWriter(new FileWriter(file, false));
+			
+			for (String line : newLineAry) {
+				writer.write(line);
+			}
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+		finally {
+			closeReaderWriter(writer);
+		}
+	}
+	
+	private File getFile() {
+		return new File(this.device);
+	}
+	
+	private void closeReaderWriter(Closeable readerWriter) {
+		try {
+			if (null != readerWriter) {
+				readerWriter.close();
+			}
+		}
+		catch (IOException e) {
+			
+		}
 	}
 }

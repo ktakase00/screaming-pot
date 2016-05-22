@@ -109,22 +109,28 @@ public class DeviceDiscovery implements Runnable {
 	 * @param params サービスの情報
 	 */
 	private void addSenderService(RemoteDevice btDevice, ServiceParams params) {
-		// サービスのURL
-		String url = params.getUrl();
-		
-		// すでに追加されていれば何もしない
-		if (this.senderServiceMap.containsKey(url)) {
-			return;
-		}
-		
 		try {
+			String address = btDevice.getBluetoothAddress();
+			String friendlyName = btDevice.getFriendlyName(false);
+			if (friendlyName.isEmpty()) {
+				friendlyName = address;
+			}
+			
+			// すでに追加されていれば何もしない
+			if (this.senderServiceMap.containsKey(friendlyName)) {
+				return;
+			}
+			
+			// サービスのURL
+			String url = params.getUrl();
+			
 			// 送信元サービスを生成
-			Receiver service = new Receiver(btDevice.getBluetoothAddress(),
-					btDevice.getFriendlyName(false),
+			Receiver service = new Receiver(address,
+					friendlyName,
 					url,
 					params.getServiceName());
 			
-			this.senderServiceMap.put(url, service);
+			this.senderServiceMap.put(friendlyName, service);
 			
 			// 通信開始
 			service.start();

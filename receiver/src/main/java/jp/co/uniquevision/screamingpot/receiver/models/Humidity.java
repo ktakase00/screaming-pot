@@ -5,20 +5,20 @@ import java.util.Date;
 public class Humidity {
 
 	private long sequence;
-	private String code;
+	private String device;
 	private Date time;
 	private double degree;
 	
-	public Humidity(String code, Date time, double degree) {
+	public Humidity(String device, Date time, double degree) {
 		this.sequence = 0;
-		this.code = code;
+		this.device = device;
 		this.time = time;
 		this.degree = degree;
 	}
 	
-	public Humidity(long sequence, String code, Date time, double degree) {
+	public Humidity(long sequence, String device, Date time, double degree) {
 		this.sequence = sequence;
-		this.code = code;
+		this.device = device;
 		this.time = time;
 		this.degree = degree;
 	}
@@ -30,7 +30,7 @@ public class Humidity {
 	
 	public static Humidity cloneWithSequence(Humidity humidity, long sequence) {
 		return new Humidity(sequence,
-				humidity.getCode(),
+				humidity.getDevice(),
 				humidity.getTime(),
 				humidity.getDegree());
 	}
@@ -39,8 +39,8 @@ public class Humidity {
 		return this.sequence;
 	}
 	
-	public String getCode() {
-		return this.code;
+	public String getDevice() {
+		return this.device;
 	}
 	
 	public Date getTime() {

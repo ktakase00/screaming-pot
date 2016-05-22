@@ -140,4 +140,8 @@ public class Receiver implements Runnable {
 			}
 		}
 	}
+	
+	public DataStore getDataStore() {
+		return this.dataStore;
+	}
 }
