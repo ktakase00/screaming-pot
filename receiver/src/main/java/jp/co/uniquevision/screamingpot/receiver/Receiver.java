@@ -23,6 +23,7 @@ public class Receiver implements Runnable {
 	
 	/**
 	 * コンストラクタ
+	 * 
 	 * @param deviceAddress Bluetooth端末のアドレス
 	 * @param friendlyName Bluetooth端末の名前
 	 * @param url サービスのURL
@@ -69,6 +70,7 @@ public class Receiver implements Runnable {
 	
 	/**
 	 * 通信実行
+	 * 
 	 * @throws InterruptedException
 	 */
 	private void communicate() throws InterruptedException {
@@ -114,6 +116,7 @@ public class Receiver implements Runnable {
 	
 	/**
 	 * 受信ループ
+	 * 
 	 * @param inStream 入力ストリーム
 	 */
 	private void receive(InputStream inStream) {
@@ -144,6 +147,11 @@ public class Receiver implements Runnable {
 		}
 	}
 	
+	/**
+	 * データストアを返す
+	 * 
+	 * @return データストア
+	 */
 	public DataStore getDataStore() {
 		return this.dataStore;
 	}

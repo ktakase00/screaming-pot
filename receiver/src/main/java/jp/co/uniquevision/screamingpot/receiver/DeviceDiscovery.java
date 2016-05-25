@@ -16,19 +16,46 @@ import jp.co.uniquevision.screamingpot.receiver.discovery.ServicesSearch;
  */
 public class DeviceDiscovery implements Runnable {
 
-	private Map<String, Receiver> senderServiceMap;
+	private Map<String, Receiver> receiverMap;
 	private Vector<RemoteDevice> devicesDiscovered;
 	private Object inquiryCompletedEvent;
 	
-	public DeviceDiscovery(Map<String, Receiver> senderServiceMap) {
-		this.senderServiceMap = senderServiceMap;
+	/**
+	 * コンストラクタ
+	 * 
+	 * @param receiverMap レシーバーのマップ
+	 */
+	public DeviceDiscovery(Map<String, Receiver> receiverMap) {
+		this.receiverMap = receiverMap;
 	}
     
+	/**
+	 * スレッドを開始する
+	 * 
+	 * @param receiverMap レシーバーのマップ
+	 * @return スレッドオブジェクト
+	 */
+	public static Thread start(Map<String, Receiver> receiverMap) {
+		DeviceDiscovery discovery = new DeviceDiscovery(receiverMap);
+		Thread discoveryThread = new Thread(discovery);
+		discoveryThread.start();
+		
+		return discoveryThread;
+	}
+	
+	/**
+	 * スレッドの処理内容
+	 */
 	@Override
 	public void run() {
+		boolean loop = true;
+				
 		try {
-			while (true) {
+			while (loop) {
+				// Bluetoothデバイスが存在するかどうか探索する
 				discoverDevices();
+				
+				// サービスが存在するかどうか探索する
 				discoverServices();
 				
 				Thread.sleep(1000);
@@ -36,6 +63,7 @@ public class DeviceDiscovery implements Runnable {
 		}
 		catch (InterruptedException e) {
 			e.printStackTrace();
+			loop = false;
 		}
 	}
 	
@@ -83,10 +111,11 @@ public class DeviceDiscovery implements Runnable {
 	
 	/**
 	 * サービスが存在するかどうか探索する
+	 * 
 	 * @throws InterruptedException
 	 */
 	private void discoverServices() throws InterruptedException {
-		if (null == this.devicesDiscovered || null == this.senderServiceMap) {
+		if (null == this.devicesDiscovered || null == this.receiverMap) {
 			return;
 		}
 		
@@ -117,7 +146,7 @@ public class DeviceDiscovery implements Runnable {
 			}
 			
 			// すでに追加されていれば何もしない
-			if (this.senderServiceMap.containsKey(friendlyName)) {
+			if (this.receiverMap.containsKey(friendlyName)) {
 				return;
 			}
 			
@@ -130,7 +159,7 @@ public class DeviceDiscovery implements Runnable {
 					url,
 					params.getServiceName());
 			
-			this.senderServiceMap.put(friendlyName, service);
+			this.receiverMap.put(friendlyName, service);
 			
 			// 通信開始
 			service.start();

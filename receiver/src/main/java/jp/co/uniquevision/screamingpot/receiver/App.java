@@ -18,16 +18,15 @@ public class App
 		// 送信元サービス管理用マップ
 		Map<String, Receiver> receiverMap = new HashMap<>();
 		
-		// Bluetooth端末の探索
-		DeviceDiscovery discovery = new DeviceDiscovery(receiverMap);
-		Thread discoveryThread = new Thread(discovery);
-		discoveryThread.start();
+		// Bluetooth端末の探索スレッド開始
+		Thread discoveryThread = DeviceDiscovery.start(receiverMap);
 		
-		Transporter transporter = new Transporter(receiverMap);
-		Thread transporterThread = new Thread(transporter);
-		transporterThread.start();
+		// データの転送スレッド開始
+		Thread transporterThread = Transporter.start(receiverMap);
 		
 		try {
+			// 終了するのを待つ
+			transporterThread.join();
 			discoveryThread.join();
 		}
 		catch (InterruptedException e) {

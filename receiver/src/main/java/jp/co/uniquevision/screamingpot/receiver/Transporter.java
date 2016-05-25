@@ -16,6 +16,10 @@ import jp.co.uniquevision.screamingpot.receiver.models.Humidity;
 import jp.co.uniquevision.screamingpot.receiver.models.EsMetaCreate;
 import jp.co.uniquevision.screamingpot.receiver.models.EsSourceCreate;
 
+/**
+ * ファイルから湿度データを読み出しサーバに送信する
+ *
+ */
 public class Transporter implements Runnable {
 
 	public static final MediaType JSON
@@ -25,15 +29,36 @@ public class Transporter implements Runnable {
 	private Map<String, Receiver> receiverMap;
 	private Map<String, Long> sequenceMap;
 
+	/**
+	 * コンストラクタ
+	 * 
+	 * @param receiverMap レシーバーのマップ
+	 */
 	public Transporter(Map<String, Receiver> receiverMap) {
 		this.receiverMap = receiverMap;
 		this.sequenceMap = new HashMap<String, Long>();
 		this.client = new OkHttpClient();
 	}
 	
+	/**
+	 * スレッドを開始する
+	 * 
+	 * @param receiverMap レシーバーのマップ
+	 * @return スレッドオブジェクト
+	 */
+	public static Thread start(Map<String, Receiver> receiverMap) {
+		Transporter transporter = new Transporter(receiverMap);
+		Thread transporterThread = new Thread(transporter);
+		transporterThread.start();
+		
+		return transporterThread;
+	}
+	
+	/**
+	 * スレッドの処理内容
+	 */
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
 		boolean loop = true;
 		
 		while (loop) {
@@ -48,22 +73,30 @@ public class Transporter implements Runnable {
 		}
 	}
 	
+	/**
+	 * 
+	 */
 	private void communicate() {
+		// シーケンス番号を記憶するマップを初期化する
 		this.sequenceMap.clear();
 		
+		// 各レシーバーのデータストアからレコードを読み出す
 		List<Humidity> listAll = gather();
 		if (0 >= listAll.size()) {
 			return;
 		}
 		
+		// レコードのリストからサーバに送信するJSONを生成する
 		String bulk = makeBulk(listAll);
 		System.out.println(bulk);
 		
 		try {
+			// サーバにJSONを送信
 			String url = "http://127.0.0.1:8080/elasticsearch/_bulk";
 			String res = post(url, bulk);
 			System.out.println(res);
 			
+			// 送信に成功したら各レシーバーのデータストアを更新する
 			cleanup();
 		}
 		catch (IOException e) {
@@ -71,22 +104,11 @@ public class Transporter implements Runnable {
 		}
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	private List<Humidity> gather() {
-		/*
-		Humidity humidity = Humidity.newInstance(100.0);
-		Gson gson = new Gson();
-		String json = gson.toJson(humidity);
-		System.out.println(json);
-		String url = "http://127.0.0.1:8080/elasticsearch/screamingpot/humidity";
-		
-		try {
-			post(url, json);
-		}
-		catch (IOException e) {
-			e.printStackTrace();
-		}
-		*/
-//		System.out.println(String.format("transporter: %d", this.receiverMap.size()));
 		List<Humidity> listAll = new ArrayList<Humidity>();
 		
 		for (Map.Entry<String, Receiver> ent : this.receiverMap.entrySet()) {
