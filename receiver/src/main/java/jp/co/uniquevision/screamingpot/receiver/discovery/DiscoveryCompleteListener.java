@@ -8,5 +8,11 @@ import java.util.Vector;
  * @param <T> 発見したアイテムの一覧
  */
 public interface DiscoveryCompleteListener<T> {
+	
+	/**
+	 * 探索終了時の処理
+	 * 
+	 * @param discovered 発見した端末やサービスのリスト
+	 */
 	void onDiscoveryComplete(Vector<T> discovered);
 }

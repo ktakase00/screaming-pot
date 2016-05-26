@@ -15,6 +15,7 @@ public class ServiceDiscoveryListener implements DiscoveryListener {
 	
 	/**
 	 * コンストラクタ
+	 * 
 	 * @param completeListener 探索終了リスナー
 	 */
 	public ServiceDiscoveryListener(DiscoveryCompleteListener<ServiceParams> completeListener) {
@@ -23,6 +24,9 @@ public class ServiceDiscoveryListener implements DiscoveryListener {
 	
 	/**
 	 * 端末発見
+	 * 
+	 * @param btDevice 発見した端末
+	 * @param cod わからん
 	 */
 	@Override
 	public void deviceDiscovered(RemoteDevice btDevice, DeviceClass cod) {
@@ -32,6 +36,8 @@ public class ServiceDiscoveryListener implements DiscoveryListener {
 
 	/**
 	 * 端末の探索終了
+	 * 
+	 * @param discType わからん
 	 */
 	@Override
 	public void inquiryCompleted(int discType) {
@@ -41,6 +47,9 @@ public class ServiceDiscoveryListener implements DiscoveryListener {
 
 	/**
 	 * サービスの探索終了
+	 * 
+	 * @param transID わからん
+	 * @param respCode わからん
 	 */
 	@Override
 	public void serviceSearchCompleted(int transID, int respCode) {
@@ -53,6 +62,9 @@ public class ServiceDiscoveryListener implements DiscoveryListener {
 
 	/**
 	 * サービス発見
+	 * 
+	 * @param transID わからん
+	 * @param servRecord わからん
 	 */
 	@Override
 	public void servicesDiscovered(int transID, ServiceRecord[] servRecord) {

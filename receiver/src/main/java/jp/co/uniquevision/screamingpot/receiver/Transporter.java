@@ -63,7 +63,8 @@ public class Transporter implements Runnable {
 		
 		while (loop) {
 			try {
-				communicate();
+				// レシーバーが受信した湿度データをサーバ(ElasticSearch)に送信する
+				transport();
 				Thread.sleep(5000);
 			}
 			catch (InterruptedException e) {
@@ -74,9 +75,9 @@ public class Transporter implements Runnable {
 	}
 	
 	/**
-	 * 
+	 * レシーバーが受信した湿度データをサーバ(ElasticSearch)に送信する
 	 */
-	private void communicate() {
+	private void transport() {
 		// シーケンス番号を記憶するマップを初期化する
 		this.sequenceMap.clear();
 		
@@ -105,18 +106,22 @@ public class Transporter implements Runnable {
 	}
 
 	/**
+	 * すべてのレシーバーのデータストアから湿度データを集める
 	 * 
-	 * @return
+	 * @return 湿度データのリスト
 	 */
 	private List<Humidity> gather() {
 		List<Humidity> listAll = new ArrayList<Humidity>();
 		
+		// すべてのレシーバーについて繰り返し
 		for (Map.Entry<String, Receiver> ent : this.receiverMap.entrySet()) {
+			// レシーバーのデータストアから湿度データを読み出しリストに追加する
 			Receiver receiver = ent.getValue();
 			DataStore dataStore = receiver.getDataStore();
 			List<Humidity> list = dataStore.readDataStore();
 			listAll.addAll(list);
 			
+			// 1件以上ある場合は最後のシーケンス番号を(レシーバーごとに)記憶しておく
 			if (0 < list.size()) {
 				this.sequenceMap.put(dataStore.getDevice(),
 						list.get(list.size()-1).getSequence());
@@ -126,22 +131,44 @@ public class Transporter implements Runnable {
 		return listAll;
 	}
 	
+	/**
+	 * レコードのリストからサーバに送信するJSONを生成する
+	 * ElasticSearchのBulk API用のJSON形式で生成する
+	 * 
+	 * @param list 湿度データのリスト
+	 * @return 生成したJSON
+	 */
 	private String makeBulk(List<Humidity> list) {
 		StringBuilder builder = new StringBuilder();
 		Gson gson = new Gson();
 		
+		// すべての湿度データについて繰り返し
 		for (Humidity humidity : list) {
+			// メタデータ
 			EsMetaCreate meta = new EsMetaCreate("practice", "humidity", null);
+			// ソースデータ
 			EsSourceCreate source = new EsSourceCreate(humidity.getDevice(),
 					humidity.getTime(),
 					humidity.getDegree());
+			// それぞれJSONを生成
 			String metaJson = gson.toJson(meta);
 			String sourceJson = gson.toJson(source);
+			// 出力内容に追加
 			builder.append((String.format("%s\n%s\n", metaJson, sourceJson)));
 		}
+		// JSONを出力
 		return builder.toString();
 	}
 	
+	/**
+	 * サーバにJSONを送信
+	 * ElasticSearchのBulk APIを実行する
+	 * 
+	 * @param url APIのURL
+	 * @param bulk 送信するJSON
+	 * @return APIの出力内容
+	 * @throws IOException 通信失敗
+	 */
 	private String post(String url, String bulk) throws IOException {
 		RequestBody body = RequestBody.create(JSON, bulk);
 		Request request = new Request.Builder()
@@ -152,13 +179,18 @@ public class Transporter implements Runnable {
 		return response.body().string();
 	}
 	
+	/**
+	 * 各レシーバーのデータストアを更新する
+	 */
 	private void cleanup() {
+		// すべてのレシーバーについて繰り返し
 		for (Map.Entry<String, Receiver> ent : this.receiverMap.entrySet()) {
 			Receiver receiver = ent.getValue();
 			DataStore dataStore = receiver.getDataStore();
 			String device = dataStore.getDevice();
 			
 			if (this.sequenceMap.containsKey(device)) {
+				// ファイルから転送済みのレコードを削除する
 				dataStore.cleanup(this.sequenceMap.get(device));
 			}
 		}

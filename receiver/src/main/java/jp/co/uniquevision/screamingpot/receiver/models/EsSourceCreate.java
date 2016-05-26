@@ -4,6 +4,10 @@ import java.util.Date;
 
 import jp.co.uniquevision.screamingpot.receiver.Util;
 
+/**
+ * ElasticeSearch Bulk APIのCREATEレコードのJSONパラメータ定義
+ *
+ */
 public class EsSourceCreate {
 	private String device;
 	private String time;

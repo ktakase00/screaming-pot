@@ -19,6 +19,7 @@ public class ServicesSearch {
 	
 	/**
 	 * コンストラクタ
+	 * 
 	 * @param btDevice サービスを探索する対象のBluetooth端末
 	 * @param serviceUUID 探索するサービスのUUID
 	 */
@@ -28,6 +29,7 @@ public class ServicesSearch {
 	
 	/**
 	 * コンストラクタ(シリアル通信サービス探索用)
+	 * 
 	 * @param btDevice サービスを探索する対象のBluetooth端末
 	 */
 	public ServicesSearch(RemoteDevice btDevice) {
@@ -36,6 +38,7 @@ public class ServicesSearch {
 	
 	/**
 	 * 初期化処理
+	 * 
 	 * @param btDevice サービスを探索する対象のBluetooth端末
 	 * @param serviceUUID 探索するサービスのUUID
 	 */
@@ -46,6 +49,7 @@ public class ServicesSearch {
 	
 	/**
 	 * Bluetooth端末のサービスを探索
+	 * 
 	 * @throws InterruptedException
 	 */
 	public void find() throws InterruptedException {
@@ -94,6 +98,7 @@ public class ServicesSearch {
 	
 	/**
 	 * 発見したサービスの一覧を返却する
+	 * 
 	 * @return 発見したサービスの一覧
 	 */
 	public Vector<ServiceParams> getServicesFound() {
@@ -102,6 +107,7 @@ public class ServicesSearch {
 	
 	/**
 	 * 端末の探索終了時の処理
+	 * 
 	 * @param discovered 見つかったサービスの一覧
 	 */
 	private void onServiceDiscoveryComplete(Vector<ServiceParams> discovered) {
@@ -115,7 +121,8 @@ public class ServicesSearch {
 	
 	/**
 	 * 探索結果を記憶する
-	 * @param discovered サービスのVector配列
+	 * 
+	 * @param discovered サービスのリスト
 	 */
 	private void setServicesFound(Vector<ServiceParams> discovered) {
 		System.out.println(discovered.size() +  " service(s) found");

@@ -16,6 +16,7 @@ public class DeviceDiscoveryListener implements DiscoveryListener {
 	
 	/**
 	 * コンストラクタ
+	 * 
 	 * @param completeListener 探索終了リスナー
 	 */
 	public DeviceDiscoveryListener(DiscoveryCompleteListener<RemoteDevice> completeListener) {
@@ -24,10 +25,15 @@ public class DeviceDiscoveryListener implements DiscoveryListener {
 	
 	/**
 	 * 端末発見
+	 * 
+	 * @param btDevice 発見した端末
+	 * @param cod わからん
 	 */
 	@Override
 	public void deviceDiscovered(RemoteDevice btDevice, DeviceClass cod) {
 		System.out.println("Device " + btDevice.getBluetoothAddress() + " found");
+		
+		// リストに追加
 		this.devicesDiscovered.addElement(btDevice);
         
 		try {
@@ -41,6 +47,8 @@ public class DeviceDiscoveryListener implements DiscoveryListener {
 	
 	/**
 	 * 端末の探索終了
+	 * 
+	 * @param discType わからん
 	 */
 	@Override
 	public void inquiryCompleted(int discType) {
@@ -49,11 +57,16 @@ public class DeviceDiscoveryListener implements DiscoveryListener {
 		if (null == this.completeListener) {
 			return;
 		}
+		
+		// 探索終了を通知
 		this.completeListener.onDiscoveryComplete(this.devicesDiscovered);
 	}
 	
 	/**
 	 * サービスの探索終了
+	 * 
+	 * @param transID わからん
+	 * @param respCode わからん
 	 */
 	@Override
 	public void serviceSearchCompleted(int transID, int respCode) {
@@ -63,6 +76,9 @@ public class DeviceDiscoveryListener implements DiscoveryListener {
 	
 	/**
 	 * サービス発見
+	 * 
+	 * @param transID わからん
+	 * @param servRecord わからん
 	 */
 	@Override
 	public void servicesDiscovered(int transID, ServiceRecord[] servRecord) {

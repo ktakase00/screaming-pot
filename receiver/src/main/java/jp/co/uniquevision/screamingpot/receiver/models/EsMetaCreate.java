@@ -1,5 +1,9 @@
 package jp.co.uniquevision.screamingpot.receiver.models;
 
+/**
+ * ElasticeSearch Bulk APIのCREATEレコードのJSONパラメータ定義
+ *
+ */
 public class EsMetaCreate {
 	private EsMeta create;
 	
