@@ -7,7 +7,8 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  delay(1000);
+  long derayPeriod = 1000UL * 60;
+  delay(derayPeriod);
   val = analogRead(0);
   Serial.println(val);
 }
