@@ -24,6 +24,10 @@ public class Transporter implements Runnable {
 
 	public static final MediaType JSON
 		= MediaType.parse("application/json; charset=utf-8");
+	
+	public static final long TRANSPORT_PERIOD_MSEC = 5000 * 60;
+	public static final String ES_INDEX = "screaming-pot";
+	public static final String ES_TYPE = "humidity";
 
 	private OkHttpClient client;
 	private Map<String, Receiver> receiverMap;
@@ -65,7 +69,7 @@ public class Transporter implements Runnable {
 			try {
 				// レシーバーが受信した湿度データをサーバ(ElasticSearch)に送信する
 				transport();
-				Thread.sleep(5000);
+				Thread.sleep(TRANSPORT_PERIOD_MSEC);
 			}
 			catch (InterruptedException e) {
 				e.printStackTrace();
@@ -145,7 +149,7 @@ public class Transporter implements Runnable {
 		// すべての湿度データについて繰り返し
 		for (Humidity humidity : list) {
 			// メタデータ
-			EsMetaCreate meta = new EsMetaCreate("practice", "humidity", null);
+			EsMetaCreate meta = new EsMetaCreate(ES_INDEX, ES_TYPE, null);
 			// ソースデータ
 			EsSourceCreate source = new EsSourceCreate(humidity.getDevice(),
 					humidity.getTime(),

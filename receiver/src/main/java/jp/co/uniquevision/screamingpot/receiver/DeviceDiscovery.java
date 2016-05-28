@@ -1,6 +1,9 @@
 package jp.co.uniquevision.screamingpot.receiver;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import javax.bluetooth.*;
@@ -15,8 +18,11 @@ import jp.co.uniquevision.screamingpot.receiver.discovery.ServicesSearch;
  *
  */
 public class DeviceDiscovery implements Runnable {
+	
+	public static final long DISCOVERY_PERIOD_MSEC = 10000L;
 
 	private Map<String, Receiver> receiverMap;
+	private Map<String, Thread> threadMap;
 	private Vector<RemoteDevice> devicesDiscovered;
 	private Object inquiryCompletedEvent;
 	
@@ -27,6 +33,7 @@ public class DeviceDiscovery implements Runnable {
 	 */
 	public DeviceDiscovery(Map<String, Receiver> receiverMap) {
 		this.receiverMap = receiverMap;
+		this.threadMap = new HashMap<String, Thread>();
 	}
     
 	/**
@@ -55,10 +62,13 @@ public class DeviceDiscovery implements Runnable {
 				// Bluetoothデバイスが存在するかどうか探索する
 				discoverDevices();
 				
+				// 停止しているレシーバーをマップから削除する
+				cleanupReceiverMap();
+				
 				// サービスが存在するかどうか探索する
 				discoverServices();
 				
-				Thread.sleep(1000);
+				Thread.sleep(DISCOVERY_PERIOD_MSEC);
 			}
 		}
 		catch (InterruptedException e) {
@@ -127,17 +137,18 @@ public class DeviceDiscovery implements Runnable {
 			
 			// 送信元サービスをリストに追加する
 			for (ServiceParams params : servicesSearch.getServicesFound()) {
-				addSenderService(btDevice, params);
+				addReceiver(btDevice, params);
 			}
 		}
 	}
 	
 	/**
-	 * 送信元サービスをリストに追加する
+	 * レシーバーをマップに追加する
+	 * 
 	 * @param btDevice Bluetooth端末
 	 * @param params サービスの情報
 	 */
-	private void addSenderService(RemoteDevice btDevice, ServiceParams params) {
+	private void addReceiver(RemoteDevice btDevice, ServiceParams params) {
 		try {
 			String address = btDevice.getBluetoothAddress();
 			String friendlyName = btDevice.getFriendlyName(false);
@@ -147,6 +158,7 @@ public class DeviceDiscovery implements Runnable {
 			
 			// すでに追加されていれば何もしない
 			if (this.receiverMap.containsKey(friendlyName)) {
+				System.out.println(getClass().getSimpleName() + ": receiver already exists: " + friendlyName);
 				return;
 			}
 			
@@ -162,7 +174,12 @@ public class DeviceDiscovery implements Runnable {
 			this.receiverMap.put(friendlyName, service);
 			
 			// 通信開始
-			service.start();
+			Thread receiverThread = service.start();
+			
+			// スレッドをマップで記憶
+			this.threadMap.put(friendlyName, receiverThread);
+			
+			System.out.println(getClass().getSimpleName() + ": receiver added: " + friendlyName);
 		}
 		catch (IOException e) {
 			e.printStackTrace();
@@ -181,6 +198,34 @@ public class DeviceDiscovery implements Runnable {
 		// 待機を終了させる
 		synchronized(this.inquiryCompletedEvent) {
 			this.inquiryCompletedEvent.notifyAll();
+		}
+	}
+	
+	/**
+	 * 停止しているレシーバーをマップから削除する
+	 */
+	private void cleanupReceiverMap() {
+		List<String> stoppedList = new ArrayList<String>();
+		
+		// レシーバーの数だけ繰り返し
+		for (Map.Entry<String, Thread> entry : this.threadMap.entrySet()) {
+			String friendlyName = entry.getKey();
+			Thread thread = entry.getValue();
+			
+			// レシーバーのスレッドが存在するかどうかを確認
+			if (!thread.isAlive()) {
+				// 削除対象とする
+				stoppedList.add(friendlyName);
+			}
+		}
+		
+		// 削除対象のレシーバーの数だけ繰り返し
+		for (String friendlyName : stoppedList) {
+			// レシーバーのマップとスレッドのマップから削除する
+			this.receiverMap.remove(friendlyName);
+			this.threadMap.remove(friendlyName);
+			
+			System.out.println(getClass().getSimpleName() + ": removed receiver: " + friendlyName);
 		}
 	}
 }

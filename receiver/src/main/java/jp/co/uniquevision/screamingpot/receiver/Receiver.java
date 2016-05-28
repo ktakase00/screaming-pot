@@ -3,7 +3,10 @@ package jp.co.uniquevision.screamingpot.receiver;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.BufferedReader;
+import java.io.Closeable;
 import java.io.InputStreamReader;
+
+import javax.microedition.io.Connection;
 import javax.microedition.io.Connector;
 import javax.microedition.io.StreamConnection;
 
@@ -15,11 +18,16 @@ import jp.co.uniquevision.screamingpot.receiver.models.Humidity;
  */
 public class Receiver implements Runnable {
 	
+	public static final int RETRY_MAX = 1;
+	public static final long RETRY_INTERVAL_MSEC = 5000;
+	
 	private String deviceAddress;
 	private String friendlyName;
 	private String url;
 	private String serviceName;
 	private DataStore dataStore;
+	private int retryCount;
+	private StreamConnection connection;
 	
 	/**
 	 * コンストラクタ
@@ -44,9 +52,11 @@ public class Receiver implements Runnable {
 	/**
 	 * 通信スレッドを開始する
 	 */
-	public void start() {
+	public Thread start() {
 		Thread serviceThread = new Thread(this);
 		serviceThread.start();
+		
+		return serviceThread;
 	}
 
 	/**
@@ -55,63 +65,76 @@ public class Receiver implements Runnable {
 	@Override
 	public void run() {
 		String threadName = this.deviceAddress + " " + this.friendlyName;
-		System.out.println("service thread start: " + threadName);
+		System.out.println(getClass().getSimpleName() + ": thread start: " + threadName);
 		
-		try {
-			// 通信実行
-			communicate();
-		}
-		catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		
-		System.out.println("service thread stopped: " + threadName);
-	}
-	
-	/**
-	 * 通信実行
-	 * 
-	 * @throws InterruptedException
-	 */
-	private void communicate() throws InterruptedException {
-		StreamConnection connection = null;
+		this.retryCount = 0;
+		this.connection = null;
 		InputStream inStream = null;
 		
 		try {
-			System.out.println("Connecting to " + this.url);
-
 			// 接続
-			connection = (StreamConnection)Connector.open(this.url);
-			
-			// ストリームを開く
-			inStream = connection.openInputStream();
+			inStream = openStream();
 			
 			// 受信ループ
 			receive(inStream);
 		}
-		catch (IOException e) {
+		catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 		finally {
 			// 接続を閉じる
-			if (null != inStream) {
-				try {
-					inStream.close();
-				}
-				catch (IOException e) {
-					// 何もしない
-				}
+			closeStream(inStream);
+			closeConnection(this.connection);
+		}
+		
+		System.out.println(getClass().getSimpleName() + ": thread stopped: " + threadName);
+	}
+	
+	/**
+	 * 接続
+	 * 
+	 * @return Bluetoothからの入力ストリーム
+	 * @throws InterruptedException
+	 */
+	private InputStream openStream() throws InterruptedException {
+		InputStream inStream = null;
+		boolean loop = true;
+		
+		System.out.println("Connecting to " + this.url);
+
+		while (loop) {
+			try {
+				this.connection = null;
+				inStream = null;
+				
+				// 接続
+				this.connection = (StreamConnection)Connector.open(this.url);
+				
+				// ストリームを開く
+				inStream = this.connection.openInputStream();
+				
+				// 成功したらループを終了
+				loop = false;
 			}
-			
-			if (null != connection) {
-				try {
-					connection.close();
-				}
-				catch (IOException e) {
-					// 何もしない
+			catch (IOException e) {
+				e.printStackTrace();
+				
+				// 接続を閉じる
+				closeStream(inStream);
+				closeConnection(this.connection);
+				
+				// 接続リトライ回数の確認
+				this.retryCount++;
+				loop = RETRY_MAX >= this.retryCount;
+				
+				// リトライまで少し待つ
+				if (loop) {
+					Thread.sleep(RETRY_INTERVAL_MSEC);
 				}
 			}
 		}
+		
+		return inStream;
 	}
 	
 	/**
@@ -120,6 +143,10 @@ public class Receiver implements Runnable {
 	 * @param inStream 入力ストリーム
 	 */
 	private void receive(InputStream inStream) {
+		if (null == inStream) {
+			return;
+		}
+		
 		boolean loop = true;
 		BufferedReader bReader = new BufferedReader(new InputStreamReader(inStream));
 		
@@ -128,7 +155,11 @@ public class Receiver implements Runnable {
 				// read string from spp client
 				String lineRead = bReader.readLine();
 				
-				System.out.println("received: " + lineRead);
+				System.out.println(getClass().getSimpleName() + ": received: " + lineRead);
+				
+				if (null == lineRead) {
+					continue;
+				}
 				
 				double degree = Double.valueOf(lineRead);
 				Humidity humidity = Humidity.newInstance(this.friendlyName, degree);
@@ -154,5 +185,41 @@ public class Receiver implements Runnable {
 	 */
 	public DataStore getDataStore() {
 		return this.dataStore;
+	}
+	
+	/**
+	 * ストリームを閉じる
+	 * 
+	 * @param stream 対象のストリーム
+	 */
+	private void closeStream(Closeable stream) {
+		if (null == stream) {
+			return;
+		}
+		
+		try {
+			stream.close();
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 接続を閉じる
+	 * 
+	 * @param connection 対象の接続
+	 */
+	private void closeConnection(Connection connection) {
+		if (null == connection) {
+			return;
+		}
+		
+		try {
+			connection.close();
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }
